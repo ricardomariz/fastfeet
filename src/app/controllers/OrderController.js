@@ -53,6 +53,58 @@ class OrderController {
 
     return res.json(order);
   }
+
+  async update(req, res) {
+    const schema = Yup.object().shape({
+      product: Yup.string(),
+      deliveryman_id: Yup.number(),
+      recipient_id: Yup.number(),
+      signature_id: Yup.number(),
+      start_date: Yup.date(),
+    });
+
+    if (!(await schema.isValid(req.body))) {
+      return res.status(400).json({ error: 'Validation fails.' });
+    }
+
+    const order = await Order.findByPk(req.params.id);
+
+    if (!order) {
+      return res.status(400).json({ error: 'Order does not exist.' });
+    }
+
+    const { product, deliveryman_id, recipient_id } = req.body;
+
+    if (deliveryman_id && deliveryman_id !== order.deliveryman_id) {
+      const newDeliveryman = await Deliveryman.findByPk(deliveryman_id);
+      if (!newDeliveryman) {
+        return res.status(400).json({ error: 'Deliveryman does not exist' });
+      }
+    }
+
+    if (recipient_id && recipient_id !== order.recipient_id) {
+      const newRecipient = await Recipient.findByPk(recipient_id);
+      if (!newRecipient) {
+        return res.status(400).json({ error: 'Recipient does not exist' });
+      }
+    }
+
+    await order.update(req.body);
+
+    return res.json({ product, deliveryman_id, recipient_id });
+  }
+
+  async delete(req, res) {
+    const order = await Order.findByPk(req.params.id);
+
+    if (!order) {
+      return res.status(400).json({ error: 'Order does not exist' });
+    }
+
+    await order.destroy();
+
+    return res.json({ msg: 'Order deleted' });
+  }
 }
 
 export default new OrderController();
